@@ -5,11 +5,7 @@
   <vendor email="mashkoffdmitry@gmail.com">FXClub</vendor>
 
   <description>
-    <![CDATA[
-      <p><strong>GitLab Mentions</strong> provides <code>@username</code> auto‑completion for GitLab users when editing Markdown files.</p>
-      <p>Suggestions are loaded from members of a configured GitLab group via the REST API and cached for a configurable time‑to‑live (TTL).</p>
-      <p>You can set the GitLab host, personal access token, group ID, cache TTL and maximum number of suggestions under <em>Settings&nbsp;→&nbsp;Tools&nbsp;→&nbsp;GitLab Mentions</em>.</p>
-    ]]>
+    GitLab Mentions provides @username auto-completion for GitLab group members in Markdown. Suggestions are fetched from a configured GitLab group via the REST API and cached for a configurable time-to-live (TTL). Configure the GitLab host URL, personal access token, group ID, cache TTL, and maximum number of suggestions under Settings → Tools → GitLab Mentions.
   </description>
 
   <depends>com.intellij.modules.platform</depends>
