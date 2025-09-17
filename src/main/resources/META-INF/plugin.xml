@@ -1,20 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <idea-plugin>
-  <id>com.fxclub.gitlab.mentions</id>
-  <name>GitLab Mentions</name>
-  <vendor email="mashkoffdmitry@gmail.com">FXClub</vendor>
+    <id>com.fxclub.gitlab.mentions</id>
+    <name>GitLab Mentions</name>
+    <vendor email="mashkoffdmitry@gmail.com">FXClub</vendor>
+    <description>    GitLab Mentions provides @username auto-completion for GitLab group members in Markdown.</description>
 
-  <description>
-    GitLab Mentions provides @username auto-completion for GitLab group members in Markdown. Suggestions are fetched from a configured GitLab group via the REST API and cached for a configurable time-to-live (TTL). Configure the GitLab host URL, personal access token, group ID, cache TTL, and maximum number of suggestions under Settings → Tools → GitLab Mentions.
-  </description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.intellij.plugins.markdown</depends>
+    <depends>org.jetbrains.plugins.yaml</depends>
 
-  <depends>com.intellij.modules.platform</depends>
-  <depends>org.intellij.plugins.markdown</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <completion.contributor language="Markdown" implementationClass="com.fxclub.gitlab.mentions.completion.GitLabMentionCompletionContributor"/>
+        <applicationConfigurable implementation="com.fxclub.gitlab.mentions.settings.GitLabSettingsConfigurable" id="gitlab.mentions.settings" displayName="GitLab Mentions"/>
+        <notificationGroup id="GitLab Mentions" displayType="BALLOON" isLogByDefault="false"/>
+    </extensions>
 
-  <extensions defaultExtensionNs="com.intellij">
-    <completion.contributor
-      language="Markdown"
-      implementationClass="com.fxclub.gitlab.mentions.completion.GitLabMentionCompletionContributor"/>
-  </extensions>
-
+    <actions>
+        <group id="com.fxclub.gitlab.mentions.ActionsGroup" text="GitLab Mentions" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="com.fxclub.gitlab.mentions.FetchGroupMembersAction" class="com.fxclub.gitlab.mentions.actions.FetchGroupMembersAction" text="Fetch Group Members" description="Fetch all members for configured group (GitLab Mentions)"/>
+            <action id="com.fxclub.gitlab.mentions.ShowCachedUsersAction" class="com.fxclub.gitlab.mentions.actions.ShowCachedUsersAction" text="Show Cached Users" description="Show cached GitLab users (GitLab Mentions plugin)"/>
+            <action id="com.fxclub.gitlab.mentions.ClearGitLabCacheAction" class="com.fxclub.gitlab.mentions.actions.ClearGitLabCacheAction" text="Clear User Cache" description="Clear GitLab Mentions cached users and group members"/>
+        </group>
+    </actions>
 </idea-plugin>
