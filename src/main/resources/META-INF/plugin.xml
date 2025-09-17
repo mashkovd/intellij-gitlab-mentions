@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+  <id>com.fxclub.gitlab.mentions</id>
+  <name>GitLab Mentions</name>
+  <vendor email="mashkoffdmitry@gmail.com">FXClub</vendor>
+
+  <description>
+    <![CDATA[
+      <p><strong>GitLab Mentions</strong> provides <code>@username</code> auto‑completion for GitLab users when editing Markdown files.</p>
+      <p>Suggestions are loaded from members of a configured GitLab group via the REST API and cached for a configurable time‑to‑live (TTL).</p>
+      <p>You can set the GitLab host, personal access token, group ID, cache TTL and maximum number of suggestions under <em>Settings&nbsp;→&nbsp;Tools&nbsp;→&nbsp;GitLab Mentions</em>.</p>
+    ]]>
+  </description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>org.intellij.plugins.markdown</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <completion.contributor
+      language="Markdown"
+      implementationClass="com.fxclub.gitlab.mentions.completion.GitLabMentionCompletionContributor"/>
+  </extensions>
+
+</idea-plugin>
