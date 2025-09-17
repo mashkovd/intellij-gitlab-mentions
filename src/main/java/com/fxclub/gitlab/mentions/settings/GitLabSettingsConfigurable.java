@@ -5,6 +5,7 @@ import com.intellij.openapi.options.ConfigurationException;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,9 +35,10 @@ public class GitLabSettingsConfigurable implements Configurable {
     public @Nullable JComponent createComponent() {
         if (panel == null) {
             panel = new JPanel(new GridBagLayout());
+            panel.setBorder(JBUI.Borders.empty(8));
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(4,4,4,4);
-            gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
+            gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.NORTHWEST;
             panel.add(new JLabel("GitLab Host URL:"), gbc);
             hostUrlField = new JTextField(state.hostUrl, 30);
             gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
@@ -69,6 +71,10 @@ public class GitLabSettingsConfigurable implements Configurable {
             JLabel info = new JLabel("Token requires read_api scope. Group ID enables full members prefetch.");
             info.setFont(info.getFont().deriveFont(Font.ITALIC, info.getFont().getSize() - 1));
             panel.add(info, gbc);
+
+            gbc.gridy++; gbc.gridx = 0; gbc.gridwidth = 2;
+            gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH;
+            panel.add(Box.createVerticalGlue(), gbc);
         }
         return panel;
     }
