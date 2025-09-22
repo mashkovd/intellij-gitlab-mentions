@@ -22,7 +22,7 @@ java {
 
 patchPluginXml {
     sinceBuild = '243'    // 2024.3.*
-    untilBuild = '253'  // valid multi-part format with wildcard for the branch
+    untilBuild = '253.*'  // valid multi-part format with wildcard for the branch
     changeNotes = "Initial GitLab user mention completion"
 }
 
