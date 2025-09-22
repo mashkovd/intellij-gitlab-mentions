@@ -1,0 +1,22 @@
+# CODEOWNERS
+# This file defines code owners for this repository.
+# Supported by GitHub and GitLab.
+# Replace sample owners with your actual GitHub/GitLab usernames or teams.
+# The last matching pattern takes precedence.
+
+# Default owners for everything
+* @your-org/owners
+
+# Build and CI
+build.gradle @your-org/build
+settings.gradle @your-org/build
+gradle/** @your-org/build
+.github/** @your-org/devops
+.gitlab/** @your-org/devops
+
+# Source code
+src/** @your-org/ide-plugins
+
+# Documentation
+docs/** @your-org/tech-writers
+

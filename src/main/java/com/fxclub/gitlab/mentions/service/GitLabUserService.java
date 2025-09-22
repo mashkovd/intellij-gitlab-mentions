@@ -25,23 +25,27 @@ public final class GitLabUserService {
         return groupMembers.isEmpty() || (now - groupMembersFetchedAt) > settings.cacheTtlSeconds;
     }
 
-    /** Loads group members (if group id configured) into cache respecting TTL. */
+    /** Loads group members or all active users into cache respecting TTL (synchronous). */
     public synchronized void ensureGroupMembersLoaded() {
         GitLabSettingsState settings = GitLabSettingsState.getInstance();
-        if (settings.id == null || settings.id.isBlank()) return; // no group configured
         if (!shouldRefreshGroupMembers(settings)) return;
-        List<GitLabUser> fetched = apiClient.listAllGroupMembers(settings.id.trim());
-        if (!fetched.isEmpty()) {
-            groupMembers = fetched;
-            groupMembersFetchedAt = Instant.now().getEpochSecond();
+        try {
+            List<GitLabUser> fetched = apiClient.listAllMembersOrActiveUsers();
+            if (!fetched.isEmpty()) {
+                groupMembers = fetched;
+                groupMembersFetchedAt = Instant.now().getEpochSecond();
+                log.info("Loaded {} users into cache", fetched.size());
+            } else {
+                log.warn("Synchronous load returned 0 users");
+            }
+        } catch (Exception ex) {
+            log.warn("Synchronous load failed", ex);
         }
     }
 
-    /** Force reload group members ignoring TTL; returns count fetched. */
-    public synchronized int forceReloadGroupMembers() {
-        GitLabSettingsState settings = GitLabSettingsState.getInstance();
-        if (settings.id == null || settings.id.isBlank()) return 0;
-        List<GitLabUser> fetched = apiClient.listAllGroupMembers(settings.id.trim());
+    /** Force reload group members or all active users ignoring TTL; returns count fetched. */
+    public synchronized int forceReloadMembers() {
+        List<GitLabUser> fetched = apiClient.listAllMembersOrActiveUsers();
         if (!fetched.isEmpty()) {
             groupMembers = fetched;
             groupMembersFetchedAt = Instant.now().getEpochSecond();
@@ -52,13 +56,18 @@ public final class GitLabUserService {
 
     public List<GitLabUser> getGroupMembersSnapshot() { return groupMembers; }
 
-    /** Filters cached group members by prefix (case-insensitive). */
-    public List<GitLabUser> filterGroupMembers(String prefix) {
+    /** Filters cached group members by substring (case-insensitive) against username or name. */
+    public List<GitLabUser> filterGroupMembers(String query) {
         if (groupMembers.isEmpty()) return Collections.emptyList();
-        String lower = prefix.toLowerCase(Locale.ROOT);
+        String q = query.toLowerCase(Locale.ROOT);
+        int limit = GitLabSettingsState.getInstance().maxUsersPerQuery;
         return groupMembers.stream()
-                .filter(u -> u.getUsername() != null && u.getUsername().toLowerCase(Locale.ROOT).startsWith(lower))
-                .limit(GitLabSettingsState.getInstance().maxUsersPerQuery)
+                .filter(u -> {
+                    String uname = u.getUsername();
+                    String name = u.getName();
+                    return uname.toLowerCase(Locale.ROOT).contains(q) || name != null && name.toLowerCase(Locale.ROOT).contains(q);
+                })
+                .limit(limit)
                 .toList();
     }
 

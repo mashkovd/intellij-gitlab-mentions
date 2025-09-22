@@ -11,20 +11,20 @@ import com.intellij.psi.PsiFile;
 import com.intellij.util.ProcessingContext;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.intellij.plugins.markdown.lang.MarkdownLanguage;
 
 import java.util.List;
 
 /**
- * Provides @mention completion in Markdown files using a local members cache.
+ * Provides @mention completion in Markdown and CODEOWNERS files using a local members cache.
  */
 @Slf4j
 public class GitLabMentionCompletionContributor extends CompletionContributor {
 
     public GitLabMentionCompletionContributor() {
+        // Register a single provider; plugin.xml creates instances for each language we declared
         extend(
             CompletionType.BASIC,
-            PlatformPatterns.psiElement().withLanguage(MarkdownLanguage.INSTANCE),
+            PlatformPatterns.psiElement(),
             new Provider()
         );
     }
@@ -37,7 +37,8 @@ public class GitLabMentionCompletionContributor extends CompletionContributor {
             PsiFile original = p.getOriginalFile();
             boolean isMarkdownFile = original.getName().toLowerCase().endsWith(".md")
                                   || original.getName().toLowerCase().endsWith(".mdx");
-            if (!isMarkdownFile) return;
+            boolean isCodeowners = original.getName().equalsIgnoreCase("CODEOWNERS");
+            if (!isMarkdownFile && !isCodeowners) return;
 
             Document doc = p.getEditor().getDocument();
             int offset = p.getOffset();
@@ -49,30 +50,39 @@ public class GitLabMentionCompletionContributor extends CompletionContributor {
             if (userPrefix.isEmpty()) return;
 
             GitLabUserService service = ApplicationManager.getApplication().getService(GitLabUserService.class);
-            service.ensureGroupMembersLoaded();
+            // Synchronous warm-up: call ensureGroupMembersLoaded if available, otherwise fallback to forceReloadMembers
+            try {
+                service.getClass().getMethod("ensureGroupMembersLoaded").invoke(service);
+            } catch (Exception reflectError) {
+                // Fallback to a synchronous reload
+                service.forceReloadMembers();
+            }
             List<GitLabUser> fromGroup = service.filterGroupMembers(userPrefix);
             if (fromGroup.isEmpty()) return;
 
-            CompletionResultSet withPrefix = r.withPrefixMatcher(userPrefix);
+            // Use case-insensitive prefix matcher so subsequent attempts work reliably
+            r = r.withPrefixMatcher(new PlainPrefixMatcher(userPrefix, false));
+            // Keep completion session alive while the prefix changes
+            r.restartCompletionOnAnyPrefixChange();
+
             for (GitLabUser u : fromGroup) {
                 String username = u.getUsername();
                 if (username.isBlank()) continue;
                 String label = (u.getName() == null || u.getName().isBlank()) ? username : u.getName();
-                withPrefix.addElement(
+                r.addElement(
                     LookupElementBuilder.create(username)
                         .withPresentableText(label)
                         .withTypeText("@" + username + " • GitLab", true)
                         .withLookupString("@" + username)
                         .withInsertHandler((context, item) -> {
                             Document d = context.getDocument();
-                            int caret = context.getEditor().getCaretModel().getOffset();
-                            CharSequence seqNow = d.getCharsSequence();
-                            Integer atNow = findAtPrefixStart(seqNow, caret);
-                            int startReplace = atNow != null ? atNow : context.getStartOffset();
-                            int endReplace = context.getTailOffset();
-                            String handle = "@" + username;
-                            d.replaceString(startReplace, endReplace, handle);
-                            context.getEditor().getCaretModel().moveToOffset(startReplace + handle.length());
+                            int start = context.getStartOffset();
+                            int end = context.getTailOffset();
+                            CharSequence cur = d.getCharsSequence();
+                            boolean hasAtBefore = start > 0 && cur.charAt(start - 1) == '@';
+                            String handle = hasAtBefore ? username : ("@" + username);
+                            d.replaceString(start, end, handle);
+                            context.getEditor().getCaretModel().moveToOffset(start + handle.length());
                         })
                 );
             }
@@ -88,7 +98,7 @@ public class GitLabMentionCompletionContributor extends CompletionContributor {
             while (i >= 0) {
                 char ch = seq.charAt(i);
                 if (ch == '@') return i;
-                if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.' || ch == '-') {
+                if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.' || ch == '-' || ch == '/') {
                     i--;
                     continue;
                 }

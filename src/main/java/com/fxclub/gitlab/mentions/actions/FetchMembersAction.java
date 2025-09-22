@@ -13,32 +13,27 @@ import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.notification.NotificationAction;
 import lombok.extern.slf4j.Slf4j;
 
-/** Explicitly fetches (or refetches) all group members for the configured group id. */
+/** Explicitly fetches (or refetches) users: group members if Group ID is set, otherwise active users. */
 @Slf4j
-public class FetchGroupMembersAction extends AnAction {
+public class FetchMembersAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         GitLabSettingsState settings = GitLabSettingsState.getInstance();
-        if (settings.id == null || settings.id.isBlank()) {
-            NotificationGroupManager.getInstance()
-                    .getNotificationGroup("GitLab Mentions")
-                    .createNotification("Group ID not configured in Settings > GitLab Mentions.", NotificationType.WARNING)
-                    .addAction(NotificationAction.createSimpleExpiring("Configure gitLab mentions…", () ->
-                            ShowSettingsUtil.getInstance().showSettingsDialog(e.getProject(), "GitLab Mentions")))
-                    .notify(e.getProject());
-            return;
-        }
         GitLabUserService service = ApplicationManager.getApplication().getService(GitLabUserService.class);
-        int count = service.forceReloadGroupMembers();
+        int count = service.forceReloadMembers();
         if (count > 0) {
+            String msg = (settings.id != null && !settings.id.isBlank())
+                    ? ("Fetched " + count + " members for group ID " + settings.id + ".")
+                    : ("Fetched " + count + " active users.");
             NotificationGroupManager.getInstance()
                     .getNotificationGroup("GitLab Mentions")
-                    .createNotification("Fetched " + count + " members for group ID " + settings.id + ".", NotificationType.INFORMATION)
+                    .createNotification(msg, NotificationType.INFORMATION)
                     .notify(e.getProject());
-        } else {
+        }
+        else {
             NotificationGroupManager.getInstance()
                     .getNotificationGroup("GitLab Mentions")
-                    .createNotification("Failed to fetch group members (0 fetched). Check token and settings.", NotificationType.ERROR)
+                    .createNotification("Failed to fetch users (0 fetched). Check token and settings.", NotificationType.ERROR)
                     .addAction(NotificationAction.createSimpleExpiring("Configure gitLab mentions…", () ->
                             ShowSettingsUtil.getInstance().showSettingsDialog(e.getProject(), "GitLab Mentions")))
                     .notify(e.getProject());
