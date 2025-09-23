@@ -123,9 +123,12 @@ public class GitLabApiClient {
             log.info("Fetched {} group members for group={}", users.size(), groupId);
             return users;
         } else {
-            Function<Integer, String> urlForPage = page -> base + "/api/v4/users?active=true&per_page=" + perPage + "&page=" + page;
+            // Use Users API with filters to exclude bots and internal users, and only active users
+            Function<Integer, String> urlForPage = page -> base
+                    + "/api/v4/users?active=true&without_project_bots=true&exclude_internal=true&per_page="
+                    + perPage + "&page=" + page;
             List<GitLabUser> users = fetchUsersPaged(urlForPage, settings, perPage, "Active users");
-            log.info("Fetched {} active users", users.size());
+            log.info("Fetched {} active users after filtering", users.size());
             return users;
         }
     }
